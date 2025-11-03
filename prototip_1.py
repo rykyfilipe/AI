@@ -1,5 +1,6 @@
 import random
 import re
+from generator_raspunsuri import GeneratorRaspunsuri
 
 # BAZA DE CUNOȘTINȚE STRUCTURATĂ
 
@@ -61,8 +62,7 @@ sinonime = {
     "C3: Game Theory": ["c3", "game theory", "game"]
 }
 
-#  ȘABLOANE DE ÎNTREBĂRI
-
+# ȘABLOANE DE ÎNTREBĂRI
 sabloane_intrebari = [
     "Pentru problema {problema}, care este cea mai potrivită strategie dintre următoarele: {strategii}?",
     "Explicați de ce {strategie} este cea mai bună alegere pentru {problema}.",
@@ -74,157 +74,100 @@ sabloane_intrebari = [
     "Ce complexitate în timp și spațiu are {strategie} pentru {problema}?"
 ]
 
-# EXTRACTOR DE PARAMETRI
-
+# EXTRACTOR
 class ExtractorParametri:
     @staticmethod
     def extrage_numar_intrebari(prompt):
-        """Extrage numărul de întrebări din prompt"""
-        # Cautam pattern-uri: "2 întrebări", "3 questions", "vreau 5", etc.
         match = re.search(r'(\d+)\s*(întrebări|intrebari|questions|întrebare|intrebare|q|questions)', prompt, re.IGNORECASE)
         if match:
             return int(match.group(1))
-        
-        # Dacă nu găsim, default e 1
         return 1
-    
+
     @staticmethod
     def extrage_subiect(prompt):
-        """Extrage subiectul/cursul/capitolul din prompt"""
-        # Normalizează: lowercase, elimină accente și spații extra
         prompt_norm = prompt.lower().replace("ă", "a").replace("î", "i").replace("ș", "s").replace("ț", "t")
-        prompt_norm = re.sub(r'\s+', ' ', prompt_norm)  # elimină spații multiple
-        
-        # Cauta în dicționarul de sinonime
+        prompt_norm = re.sub(r'\s+', ' ', prompt_norm)
         for topic, synonyms in sinonime.items():
             for syn in synonyms:
                 if syn in prompt_norm:
                     return topic
-        
         return None
-    
-    @staticmethod
-    def get_toate_problemele():
-        """Returnează toate problemele disponibile"""
-        probleme = []
-        for curs in cursuri.values():
-            probleme.extend(list(curs.keys()))
-        return probleme
-    
-    @staticmethod
-    def get_probleme_din_curs(curs):
-        """Returnează problemele din cursul specificat"""
-        if curs in cursuri:
-            return list(cursuri[curs].keys())
-        return []
 
 # GENERATOR DE ÎNTREBĂRI
-
 class GeneratorIntrebari:
     def __init__(self):
         self.extractor = ExtractorParametri()
-    
+        self.raspuns_gen = GeneratorRaspunsuri()
+
     def genereaza_din_prompt(self, prompt):
-        """
-        Primește prompt-ul utilizatorului și generează DOAR întrebări
-        """
         print(f"\n Prompt-ul tău: '{prompt}'\n")
-        
-        # Extragem parametrii
         numar_intrebari = self.extractor.extrage_numar_intrebari(prompt)
         subiect = self.extractor.extrage_subiect(prompt)
-        
-        # Dacă nu găsim subiect, informăm utilizatorul
+
         if subiect is None:
             print("Nu am putut identifica subiectul din prompt.")
-            print("\n SUBIECTELE DISPONIBILE:")
             self._afiseaza_subiecte_disponibile()
             return
-        
-        # Determinam tipul subiectului (curs sau problemă)
+
         if subiect in cursuri:
-            # E un curs întreg
             self._genereaza_din_curs(subiect, numar_intrebari)
         else:
-            # E o problemă specifică
             self._genereaza_din_problema(subiect, numar_intrebari)
-    
+
     def _genereaza_din_curs(self, curs, numar):
-        """Generează întrebări din toate problemele unui curs"""
-        probleme = self.extractor.get_probleme_din_curs(curs)
-        
-        if not probleme:
-            print(f" Cursul '{curs}' nu are probleme.")
-            return
-        
-        # Selectam probleme random
-        probleme_selectate = random.choices(probleme, k=min(numar, len(probleme) * 3))
-        
+        probleme = list(cursuri[curs].keys())
         print(f" Generos {numar} întrebări din: {curs}\n")
         print("="*70 + "\n")
-        
+
         for idx in range(numar):
             problema = random.choice(probleme)
             intrebare = self._genereaza_o_intrebare(problema)
-            print(f"❓ Întrebarea {idx + 1}:\n{intrebare}\n")
-    
+            info = self._get_info_problema(problema)
+            raspuns = self.raspuns_gen.genereaza(intrebare, problema, info)
+
+            print(f"❓ Întrebarea {idx + 1}:\n{intrebare}")
+            print(f"✔ Răspuns: {raspuns}\n")
+
     def _genereaza_din_problema(self, problema, numar):
-        """Generează întrebări pentru o problemă specifică"""
-        # Găsim cursul care conține această problemă
-        curs_gasit = None
-        for curs, probleme_dict in cursuri.items():
-            if problema in probleme_dict:
-                curs_gasit = curs
-                break
-        
-        if not curs_gasit:
-            print(f"Problema '{problema}' nu a fost găsită.")
-            self._afiseaza_subiecte_disponibile()
-            return
-        
-        print(f" Generos {numar} întrebări despre: {problema} (din {curs_gasit})\n")
+        print(f" Generos {numar} întrebări despre: {problema}\n")
         print("="*70 + "\n")
-        
+
         for idx in range(numar):
             intrebare = self._genereaza_o_intrebare(problema)
-            print(f" Întrebarea {idx + 1}:\n{intrebare}\n")
-    
+            info = self._get_info_problema(problema)
+            raspuns = self.raspuns_gen.genereaza(intrebare, problema, info)
+
+            print(f"❓ Întrebarea {idx + 1}:\n{intrebare}")
+            print(f"✔ Răspuns: {raspuns}\n")
+
     def _genereaza_o_intrebare(self, problema):
-        """Generează o singură întrebare pentru o problemă"""
-        # Găsim informațiile problemei
         info_problema = None
         for curs in cursuri.values():
             if problema in curs:
                 info_problema = curs[problema]
                 break
-        
-        if not info_problema:
-            return "Eroare: nu s-a găsit problema."
-        
-        # Selectam un șablon random
+
         sablon = random.choice(sabloane_intrebari)
-        
-        # Completam șablonul cu date reale
         strategii = ", ".join(info_problema["strategii"])
         strategie = random.choice(info_problema["strategii"])
-        
-        if info_problema["optimizari"]:
-            optimizari = ", ".join(info_problema["optimizari"])
-        else:
-            optimizari = "N/A"
-        
-        # Formatam întrebarea
+        optimizari = ", ".join(info_problema["optimizari"]) if info_problema["optimizari"] else "N/A"
+
         intrebare = sablon.format(
             problema=problema.replace("_", " "),
             strategii=strategii,
             strategie=strategie,
             optimizari=optimizari
         )
-        
+
         return intrebare
-    
+
+    def _get_info_problema(self, problema):
+        for curs in cursuri.values():
+            if problema in curs:
+                return curs[problema]
+        return None
+
     def _afiseaza_subiecte_disponibile(self):
-        """Afișează toate subiectele și problemele disponibile"""
         print("\n CURSURI DISPONIBILE:\n")
         for curs, probleme_dict in cursuri.items():
             print(f"🎓 {curs}")
@@ -233,10 +176,8 @@ class GeneratorIntrebari:
         print()
 
 # PROGRAM PRINCIPAL
-
 if __name__ == "__main__":
     generator = GeneratorIntrebari()
-    
     print("\n" + "="*70)
     print("🎓 GENERATOR DE ÎNTREBĂRI - SMARTEST")
     print("="*70)
@@ -247,16 +188,13 @@ if __name__ == "__main__":
     print("  • 'dă-mi 2 întrebări despre graph coloring'")
     print("  • 'quiz: 4 questions game theory'")
     print("  • 'exit' pentru a ieși\n")
-    
+
     while True:
         prompt = input(" Prompt: ").strip()
-        
         if prompt.lower() in ["exit", "quit", "iesire", "ieșire"]:
             break
-        
         if not prompt:
             print("  Introduceți un prompt valid!\n")
             continue
-        
         generator.genereaza_din_prompt(prompt)
         print()
