@@ -1,6 +1,5 @@
 import random
 import re
-from generator_raspunsuri import GeneratorRaspunsuri
 from knowledge import cursuri, sinonime, sabloane_intrebari
 
 # EXTRACTOR
@@ -24,13 +23,11 @@ class ExtractorParametri:
 
 # GENERATOR DE ÎNTREBĂRI
 class GeneratorIntrebari:
-    def __init__(self, genereaza_raspunsuri: bool = True):
+    def __init__(self):
         self.extractor = ExtractorParametri()
-        self.raspuns_gen = GeneratorRaspunsuri()
-        self.genereaza_raspunsuri = genereaza_raspunsuri
 
     def genereaza_o_intrebare_din_subiect(self, subiect):
-        """Generează o întrebare (fără print și fără răspuns auto)."""
+        """Generează o întrebare din subiect."""
         if subiect in cursuri:
             probleme = list(cursuri[subiect].keys())
             problema = random.choice(probleme)
@@ -46,13 +43,10 @@ class GeneratorIntrebari:
         }
 
     def genereaza_din_prompt(self, prompt):
-        print(f"\nPrompt: '{prompt}'\n")
         numar_intrebari = self.extractor.extrage_numar_intrebari(prompt)
         subiect = self.extractor.extrage_subiect(prompt)
 
         if subiect is None:
-            print("Nu am putut identifica subiectul din prompt.")
-            self._afiseaza_subiecte_disponibile()
             return []
 
         if subiect in cursuri:
@@ -62,47 +56,27 @@ class GeneratorIntrebari:
 
     def _genereaza_din_curs(self, curs, numar):
         probleme = list(cursuri[curs].keys())
-        print(f"Generez {numar} întrebări din: {curs}\n")
-        print("-"*70 + "\n")
         rezultate = []
         for idx in range(numar):
             problema = random.choice(probleme)
             intrebare = self._genereaza_o_intrebare(problema)
             info = self._get_info_problema(problema)
-            raspuns = None
-            if self.genereaza_raspunsuri:
-                raspuns = self.raspuns_gen.genereaza(intrebare, problema, info)
-
-            print(f"Întrebarea {idx + 1}:\n{intrebare}")
-            if self.genereaza_raspunsuri and raspuns is not None:
-                print(f"Răspuns: {raspuns}\n")
             rezultate.append({
                 "intrebare": intrebare,
                 "problema": problema,
                 "info": info,
-                **({"raspuns": raspuns} if self.genereaza_raspunsuri else {}),
             })
         return rezultate
 
     def _genereaza_din_problema(self, problema, numar):
-        print(f"Generez {numar} întrebări despre: {problema}\n")
-        print("-"*70 + "\n")
         rezultate = []
         for idx in range(numar):
             intrebare = self._genereaza_o_intrebare(problema)
             info = self._get_info_problema(problema)
-            raspuns = None
-            if self.genereaza_raspunsuri:
-                raspuns = self.raspuns_gen.genereaza(intrebare, problema, info)
-
-            print(f"Întrebarea {idx + 1}:\n{intrebare}")
-            if self.genereaza_raspunsuri and raspuns is not None:
-                print(f"Răspuns: {raspuns}\n")
             rezultate.append({
                 "intrebare": intrebare,
                 "problema": problema,
                 "info": info,
-                **({"raspuns": raspuns} if self.genereaza_raspunsuri else {}),
             })
         return rezultate
 
@@ -142,12 +116,8 @@ class GeneratorIntrebari:
         return None
 
     def _afiseaza_subiecte_disponibile(self):
-        print("\nCursuri disponibile:\n")
-        for curs, probleme_dict in cursuri.items():
-            print(f"{curs}")
-            for problema in probleme_dict.keys():
-                print(f"   • {problema}")
-        print()
+        # lăsată pentru compatibilitate; nu printează nimic în varianta SRP
+        pass
 
 # PROGRAM PRINCIPAL
 if __name__ == "__main__":
@@ -169,5 +139,6 @@ if __name__ == "__main__":
         if not prompt:
             print("  Introduceți un prompt valid!\n")
             continue
-        generator.genereaza_din_prompt(prompt)
-        print()
+        rezultate = generator.genereaza_din_prompt(prompt)
+        for i, item in enumerate(rezultate, 1):
+            print(f"Întrebarea {i}:\n{item['intrebare']}\n")

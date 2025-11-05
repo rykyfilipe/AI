@@ -62,6 +62,7 @@ sabloane_intrebari = [
     "Explicați de ce {strategie} este cea mai bună alegere pentru {problema}.",
     "Pentru {problema} rezolvată cu {strategie}, ce optimizare este cea mai eficientă: {optimizari}?",
     "Care sunt avantajele și dezavantajele utilizării {strategie} pentru {problema}?",
+    "Care va fi asignarea variabilelor rămase date fiind variabilele, domeniile, constrângerile și asignarea parțială, dacă am utiliza Backtracking cu optimizarea (FC, MRV sau AC-3) pentru continuarea rezolvării?",
     "Pentru jocul dat în forma normală, există echilibru Nash pur?",
     "Pentru arborele dat, care va fi valoarea din rădăcină și câte noduri frunze vor fi vizitate cu MinMax + Alpha-Beta?",
     "Cum diferă {strategie} de alte strategii în rezolvarea {problema}?",
