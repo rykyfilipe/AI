@@ -1,8 +1,10 @@
 # GENERATOR DE RASPUNSURI
+import ast
+from generative_functions import extract_matrix_from_text, verify_nash
 
 class GeneratorRaspunsuri:
     def genereaza(self, intrebare, problema, info):
-        intrebare_l = intrebare.lower()
+        intrebare_l = str(intrebare.lower())
         # normalizare simplă fără diacritice pentru potriviri robuste
         def norm(t: str) -> str:
             return (
@@ -10,7 +12,8 @@ class GeneratorRaspunsuri:
                 .replace("ă","a").replace("â","a").replace("î","i")
                 .replace("ș","s").replace("ţ","t").replace("ț","t")
             )
-        intrebare_n = norm(intrebare)
+        print(f"intrebare_l: {intrebare_l}")
+        intrebare_n = norm(intrebare_l)
 
         # identifică o strategie menționată în întrebare, dacă există
         strategie_intrebata = None
@@ -115,7 +118,12 @@ class GeneratorRaspunsuri:
 
         # game theory
         if "nash" in intrebare_n:
-            return "Echilibrul Nash apare cand niciun jucator nu poate castiga mai mult schimbandu-si strategia unilateral."
+            matrice = extract_matrix_from_text(intrebare_n)
+            print(f"Matatrice din string: {matrice}")
+            echilibru_nash = verify_nash(matrice)
+            if echilibru_nash:
+                return str(echilibru_nash)
+            return "Nu are echilibru nash"
 
         if "minmax" in intrebare_n or "alpha-beta" in intrebare_n:
             return "MinMax exploreaza toate starile posibile, iar Alpha-Beta reduce numarul de noduri evaluate prin taierea ramurilor inutile."

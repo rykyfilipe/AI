@@ -1,6 +1,6 @@
 import random
 from knowledge import cursuri, sabloane_intrebari
-
+from generative_functions import generate_normal_form_matrix
 # GENERATOR DE ÎNTREBĂRI
 class GeneratorIntrebari:
     def __init__(self):
@@ -24,6 +24,7 @@ class GeneratorIntrebari:
 
 
     def _genereaza_o_intrebare(self, problema):
+        print(f"Problema: {problema} -------------------------")
         info_problema = None
         curs_nume = None
         for nume_curs, curs in cursuri.items():
@@ -31,11 +32,13 @@ class GeneratorIntrebari:
                 info_problema = curs[problema]
                 curs_nume = nume_curs
                 break
+        print(f"Problem info: {info_problema} -------------------------")
 
         # Alege șablon potrivit pentru tipul problemei
         is_game_theory = curs_nume == "C3: Game Theory"
         if is_game_theory:
             candidati = [s for s in sabloane_intrebari if ("Nash" in s or "MinMax" in s or "Alpha-Beta" in s) or ("strategie" in s or "complexitate" in s)]
+            print(f"These are the candidates:  {candidati}")
         else:
             # Exclude șabloanele specifice teoriei jocurilor
             candidati = [s for s in sabloane_intrebari if ("Nash" not in s and "Alpha-Beta" not in s)]
@@ -49,13 +52,18 @@ class GeneratorIntrebari:
         strategie = random.choice(info_problema["strategii"])
         optimizari = ", ".join(info_problema["optimizari"]) if info_problema["optimizari"] else "N/A"
 
+        if "C3" in problema or "nash" in problema:
+            joc = "[\n" + ",\n".join(str(row) for row in generate_normal_form_matrix()) + "\n]"
+
         intrebare = sablon.format(
             problema=problema.replace("_", " "),
             strategii=strategii,
             strategie=strategie,
-            optimizari=optimizari
+            optimizari=optimizari,
+            joc=joc
         )
 
+        print(f"Intrebare: {intrebare}")
         return intrebare
 
     def _get_info_problema(self, problema):

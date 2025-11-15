@@ -47,6 +47,7 @@ def ruleaza_pipeline(prompt: str) -> List[Dict[str, Any]]:
     # extrage parametri din prompt
     numar_intrebari = _extrage_numar_intrebari(prompt)
     subiect = _extrage_subiect(prompt)
+    print(f"Subiect: {subiect}")
 
     if subiect is None:
         print("Nu am putut identifica subiectul din prompt.")

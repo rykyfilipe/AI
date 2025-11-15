@@ -35,6 +35,7 @@ cursuri = {
             "descriere": "Echilibrul Nash într-un joc în formă normală",
             "strategii": ["dominance elimination", "best response", "mixed strategy"],
             "optimizari": [],
+            "generative_functions": [] #list of the functions that this problem can use to generate a game
         },
         "minmax_alphabeta": {
             "descriere": "Strategia MinMax cu optimizarea Alpha-Beta",
@@ -42,6 +43,9 @@ cursuri = {
             "optimizari": ["alpha-beta pruning", "transposition tables"],
         },
     },
+    "C5: Game Theory": {
+
+    }
 }
 
 sinonime = {
@@ -63,7 +67,7 @@ sabloane_intrebari = [
     "Pentru {problema} rezolvată cu {strategie}, ce optimizare este cea mai eficientă: {optimizari}?",
     "Care sunt avantajele și dezavantajele utilizării {strategie} pentru {problema}?",
     "Care va fi asignarea variabilelor rămase date fiind variabilele, domeniile, constrângerile și asignarea parțială, dacă am utiliza Backtracking cu optimizarea (FC, MRV sau AC-3) pentru continuarea rezolvării?",
-    "Pentru jocul dat în forma normală, există echilibru Nash pur?",
+    "Pentru jocul dat în forma normală: {joc}, există echilibru Nash pur?",
     "Pentru arborele dat, care va fi valoarea din rădăcină și câte noduri frunze vor fi vizitate cu MinMax + Alpha-Beta?",
     "Cum diferă {strategie} de alte strategii în rezolvarea {problema}?",
     "Ce complexitate în timp și spațiu are {strategie} pentru {problema}?",
