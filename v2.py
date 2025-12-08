@@ -12,11 +12,27 @@ KNOWLEDGE_BASE = {
             "description": "Problema de a plasa N regine pe o tabla de sah astfel incat sa nu se atace.",
             "strategies": ["backtracking", "local search (min-conflicts)", "genetic algorithms"],
             "optimizations": ["MRV (Minimum Remaining Values)", "Forward Checking"],
+            "type": "search_strategy"
         },
         "knight_tour": {
             "description": "Problema calaretului - parcurgerea tuturor patratelor unei table o singura data.",
             "strategies": ["backtracking", "Warnsdorff's rule"],
             "optimizations": ["pruning"],
+            "type": "search_strategy"
+        }
+    },
+    "C2: Constraint Satisfaction": {
+        "graph_coloring": {
+            "description": "Colorarea unui graf cu numarul minim de culori astfel incat nodurile adiacente sa aiba culori diferite.",
+            "strategies": ["backtracking", "constraint satisfaction", "greedy coloring"],
+            "optimizations": ["MRV", "Forward Checking", "AC-3"],
+            "type": "csp"
+        },
+        "hanoi": {
+            "description": "Problema Turnurilor din Hanoi - mutarea unui stack de discuri de diferite marimi intre tije.",
+            "strategies": ["recursion", "dynamic programming", "backtracking"],
+            "optimizations": ["memoization"],
+            "type": "search_strategy"
         }
     },
     "C3: Game Theory": {
@@ -37,6 +53,9 @@ KNOWLEDGE_BASE = {
 
 SYNONYMS = {
     "n-queens": ["n-queens", "regine"],
+    "knight_tour": ["knight tour", "calarel", "calaret"],
+    "graph_coloring": ["graph coloring", "colorare graf", "coloring", "colorare"],
+    "hanoi": ["hanoi", "turnuri"],
     "nash_equilibrium": ["nash", "echilibru"],
     "minmax_alphabeta": ["minmax", "alpha-beta", "arbore", "tree"],
 }
@@ -180,7 +199,11 @@ class ContentGenerator:
         elif topic_data.get("type") == "matrix_game":
             return self._create_nash_bundle(topic_data)
 
-        # 3. Handle Theory Questions (Default)
+        # 3. Handle CSP/Search Strategy with real instances
+        elif topic_data.get("type") in ["csp", "search_strategy"]:
+            return self._create_strategy_bundle(topic_key, topic_data)
+
+        # 4. Handle Theory Questions (Default)
         else:
             return self._create_theory_bundle(topic_key, topic_data)
 
@@ -246,6 +269,118 @@ class ContentGenerator:
 
         return QuestionBundle(q_text, a_text, info)
 
+    def _create_strategy_bundle(self, key, info):
+        """Generate strategy selection questions with real problem instances."""
+        
+        if "n-queens" in key:
+            return self._create_nqueens_strategy(key, info)
+        elif "knight" in key:
+            return self._create_knight_tour_strategy(key, info)
+        elif "graph_coloring" in key:
+            return self._create_graph_coloring_strategy(key, info)
+        elif "hanoi" in key:
+            return self._create_hanoi_strategy(key, info)
+        else:
+            # Fallback to theory bundle
+            return self._create_theory_bundle(key, info)
+
+    def _create_nqueens_strategy(self, key, info):
+        """Generate N-Queens strategy question with a specific board state."""
+        n = random.randint(4, 6)
+        
+        # Example: board state shown as positions of conflicting queens
+        question = (
+            f"Pentru problema N-Queens cu N={n}:\n"
+            f"Trei regine sunt deja plasate și crează conflicte. Cum rezolvi mai eficient?\n"
+            f"A) Backtracking cu Forward Checking\n"
+            f"B) Local Search (min-conflicts)\n"
+            f"C) Genetic Algorithms\n"
+            f"Justifică alegerea."
+        )
+        
+        answer = (
+            f"Răspuns: A) Backtracking cu Forward Checking. Motivare: "
+            f"Pentru N={n} cu conflicte initiale, Forward Checking elimina rapid valori imposibile "
+            f"(MRV heuristic) și reduce spațiul de căutare exponențial. "
+            f"Local Search ar putea rămâne într-un optim local, iar GA-urile sunt excesive pentru probleme mici. "
+            f"Backtracking garantează soluție."
+        )
+        
+        return QuestionBundle(question, answer, info)
+
+    def _create_knight_tour_strategy(self, key, info):
+        """Generate Knight's Tour strategy question with a specific board size."""
+        board_size = random.randint(6, 8)
+        
+        question = (
+            f"Pentru problema Knight's Tour pe o tablă de {board_size}x{board_size}:\n"
+            f"Calaretul pornind din colțul stânga-sus trebuie să viziteze fiecare pătrat exact o dată. "
+            f"Care este cea mai bună abordare?\n"
+            f"A) Backtracking pur (DFS)\n"
+            f"B) Backtracking cu heuristica Warnsdorff (MRV)\n"
+            f"C) Backtracking cu Forward Checking\n"
+            f"Justifică alegerea."
+        )
+        
+        answer = (
+            f"Răspuns: B) Backtracking cu heuristica Warnsdorff. Motivare: "
+            f"Pentru o tablă de {board_size}x{board_size}, backtracking pur explorează exponențial multe ramuri. "
+            f"Warnsdorff prioritizează mutări către pătrate cu mai puține opțiuni viitoare (MRV heuristic), "
+            f"reducând drastic backtracking. Această strategie găsește soluția în timp liniar pentru tablele obișnuite. "
+            f"Forward Checking ajută mai puțin aici decât Warnsdorff pentru această problemă specifică."
+        )
+        
+        return QuestionBundle(question, answer, info)
+
+    def _create_graph_coloring_strategy(self, key, info):
+        """Generate graph coloring strategy question with a specific graph."""
+        num_nodes = random.randint(5, 8)
+        density = random.choice(["rară", "medie", "densă"])
+        
+        question = (
+            f"Un graf cu {num_nodes} noduri și conexiuni {density} trebuie colorat cu numarul minim de culori. "
+            f"Alege strategia optimă:\n"
+            f"A) CSP cu AC-3 (Arc Consistency)\n"
+            f"B) Greedy coloring (First-Fit)\n"
+            f"C) Backtracking fără propagare\n"
+            f"Justifică alegerea considerând complexitatea și garantiile de optimalitate."
+        )
+        
+        answer = (
+            f"Răspuns: A) CSP cu AC-3. Motivare: "
+            f"AC-3 propagă constrângeri înainte de backtracking, eliminând combinații imposibile. "
+            f"Pentru grafuri cu {num_nodes} noduri și densitate {density}, "
+            f"reduce spaţiul de căutare semnificativ. Greedy poate da soluții suboptimale (nu garantează min). "
+            f"Backtracking pur fără AC-3 explorează mai multe noduri. "
+            f"AC-3 este standard pentru CSP și optimizează atât viteza cât și calitatea soluției."
+        )
+        
+        return QuestionBundle(question, answer, info)
+
+    def _create_hanoi_strategy(self, key, info):
+        """Generate Hanoi strategy question with a specific number of discs."""
+        num_discs = random.randint(4, 6)
+        
+        question = (
+            f"Pentru Problema Turnurilor din Hanoi cu {num_discs} discuri "
+            f"și limitarea că fiecare mișcare trebuie executată în <1 ms:\n"
+            f"A) Recursion pură (slow)\n"
+            f"B) Recursion cu memoization (DP)\n"
+            f"C) Iterativ cu stivă\n"
+            f"Care abordare alegi și de ce?"
+        )
+        
+        answer = (
+            f"Răspuns: C) Iterativ cu stivă (sau B cu memoization ca alternativă). Motivare: "
+            f"Pentru {num_discs} discuri, recursion pură necesită 2^{num_discs}-1 = {2**num_discs - 1} pași, "
+            f"dar stack overflow se riscă cu recursie adâncă. "
+            f"Memoization ajută dar nu elimina overhead recursiv. "
+            f"Iterativ cu stivă este mai rapid (O(2^n) time dar fără overhead funcții) și garantează "
+            f"<1 ms pe mașini moderne. Pentru {num_discs} discuri, iterativ execută instant."
+        )
+        
+        return QuestionBundle(question, answer, info)
+
 
 # ==========================================
 # 4. EVALUATOR
@@ -296,6 +431,48 @@ class Evaluator:
                 score = 0
                 feedback = "Nu ai introdus nicio valoare numerică."
 
+        # Extra logic for Nash equilibrium answers (Partial credit)
+        if "echilibr" in Evaluator.normalize(system_bundle.correct_answer_text):
+            # Extract equilibrium coordinates from correct answer
+            # Pattern: (Row X, Col Y) -> Payoffs (a, b)
+            correct_eq_pattern = r'\(Row (\d+), Col (\d+)\)'
+            correct_eqs = re.findall(correct_eq_pattern, system_bundle.correct_answer_text)
+            
+            # Extract coordinates from user answer (flexible patterns)
+            # Looks for: "Row X Col Y", "(X, Y)", "X Y", etc.
+            user_pattern = r'(?:Row\s*(\d+)\s*Col\s*(\d+)|[\(\[]?\s*(\d+)\s*[,\s]\s*(\d+)\s*[\)\]]?)'
+            user_pairs = re.findall(user_pattern, user_answer)
+            
+            # Normalize user pairs
+            user_coords = set()
+            for match in user_pairs:
+                row = match[0] or match[2]
+                col = match[1] or match[3]
+                if row and col:
+                    user_coords.add((int(row), int(col)))
+            
+            # Convert correct coords to set
+            correct_coords = set((int(r), int(c)) for r, c in correct_eqs)
+            
+            if user_coords and correct_coords:
+                matched = user_coords & correct_coords
+                if len(matched) == len(correct_coords):
+                    # User identified all equilibria correctly
+                    score = 100
+                    feedback = "Corect! Ai identificat corect toate echilibrele Nash."
+                elif matched:
+                    # User identified some equilibria correctly (partial credit)
+                    score = int(50 + (len(matched) / len(correct_coords)) * 50)
+                    feedback = f"Parțial corect. Ai identificat {len(matched)}/{len(correct_coords)} echilibre."
+                else:
+                    # User provided coordinates but none match
+                    score = max(0, int(sim_score * 50))
+                    feedback = f"Echilibrele propuse nu sunt corecte. Similaritate: {int(sim_score * 100)}%."
+            elif "echilibr" in Evaluator.normalize(user_answer) and not user_coords:
+                # User mentions equilibrium but no coords: award based on similarity
+                score = max(0, int(sim_score * 70))
+                feedback = f"Ai recunoscut termenul 'echilibru' dar nu ai oferit coordonatele exacte."
+
         return {
             "score": score,
             "feedback": feedback,
@@ -309,12 +486,29 @@ class Evaluator:
 
 def get_topic_from_prompt(prompt):
     p_norm = prompt.lower()
+    
+    # Check for course requests (c1, c2, c3)
+    if "c1" in p_norm or "curs 1" in p_norm or "search" in p_norm:
+        course = KNOWLEDGE_BASE["C1: Search Problems"]
+        topic_key = random.choice(list(course.keys()))
+        return topic_key, course[topic_key]
+    elif "c2" in p_norm or "curs 2" in p_norm or "csp" in p_norm or "constraint" in p_norm:
+        course = KNOWLEDGE_BASE["C2: Constraint Satisfaction"]
+        topic_key = random.choice(list(course.keys()))
+        return topic_key, course[topic_key]
+    elif "c3" in p_norm or "curs 3" in p_norm or "game" in p_norm or "teorie" in p_norm:
+        course = KNOWLEDGE_BASE["C3: Game Theory"]
+        topic_key = random.choice(list(course.keys()))
+        return topic_key, course[topic_key]
+    
+    # Check for specific topic synonyms
     for topic_key, synonyms in SYNONYMS.items():
         if any(s in p_norm for s in synonyms):
             # Search in KB
             for course in KNOWLEDGE_BASE.values():
                 if topic_key in course:
                     return topic_key, course[topic_key]
+    
     # Fallback default
     return "minmax_alphabeta", KNOWLEDGE_BASE["C3: Game Theory"]["minmax_alphabeta"]
 
