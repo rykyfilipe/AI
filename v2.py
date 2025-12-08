@@ -381,6 +381,161 @@ class ContentGenerator:
         
         return QuestionBundle(question, answer, info)
 
+    def generate_problem_selection_question(self):
+        """
+        Generate a question where user identifies the problem type from a list of 4+
+        and receives one or multiple instances, then must choose optimal strategy.
+        Only generates the question (instance), NO pre-computed answer.
+        """
+        # Define the 4+ problems with their instances
+        problems = {
+            "n-queens": {
+                "name": "N-Queens",
+                "description": "Problema de a plasa N regine pe o tablă de șah",
+                "instance_generator": lambda: {
+                    "n": random.randint(4, 6),
+                    "conflicts": random.randint(1, 3)
+                },
+                "strategies": [
+                    "Backtracking cu Forward Checking",
+                    "Local Search (Min-Conflicts)",
+                    "Genetic Algorithms"
+                ]
+            },
+            "knight_tour": {
+                "name": "Knight's Tour",
+                "description": "Parcurgerea unei table de șah cu calul",
+                "instance_generator": lambda: {
+                    "board_size": random.randint(6, 8),
+                    "start_position": (0, 0)
+                },
+                "strategies": [
+                    "Backtracking pur (DFS)",
+                    "Backtracking cu heuristica Warnsdorff",
+                    "Backtracking cu Forward Checking"
+                ]
+            },
+            "graph_coloring": {
+                "name": "Graph Coloring",
+                "description": "Colorarea unui graf cu numărul minim de culori",
+                "instance_generator": lambda: {
+                    "num_nodes": random.randint(5, 8),
+                    "density": random.choice(["rară", "medie", "densă"])
+                },
+                "strategies": [
+                    "CSP cu AC-3 (Arc Consistency)",
+                    "Greedy Coloring (First-Fit)",
+                    "Backtracking fără propagare"
+                ]
+            },
+            "hanoi": {
+                "name": "Generalized Hanoi",
+                "description": "Mutarea unui stack de discuri între tije cu constrângeri",
+                "instance_generator": lambda: {
+                    "num_discs": random.randint(4, 6),
+                    "num_pegs": random.randint(3, 5)
+                },
+                "strategies": [
+                    "Recursion pură",
+                    "Recursion cu memoization (DP)",
+                    "Iterativ cu stivă"
+                ]
+            }
+        }
+
+        # Select a random problem
+        problem_key = random.choice(list(problems.keys()))
+        problem = problems[problem_key]
+
+        # Generate instance(s)
+        instance = problem["instance_generator"]()
+
+        # Format the question
+        question_text = self._format_problem_selection_question(problem_key, problem, instance)
+
+        # Return a bundle with question only (answer is None for user evaluation)
+        # We'll use None as correct_answer_text to signal this is open-ended
+        return QuestionBundle(
+            question_text=question_text,
+            correct_answer_text=None,  # No pre-computed answer
+            topic_info={
+                "type": "problem_selection",
+                "problem": problem_key,
+                "instance": instance,
+                "strategies": problem["strategies"]
+            }
+        )
+
+    def _format_problem_selection_question(self, problem_key, problem, instance):
+        """Format the question text based on problem type and instance."""
+        
+        if problem_key == "n-queens":
+            return (
+                f"PROBLEMA: {problem['name']}\n"
+                f"Descriere: {problem['description']}\n\n"
+                f"INSTANȚĂ: N = {instance['n']}, cu {instance['conflicts']} regine deja plasate care creează conflicte.\n\n"
+                f"ÎNTREBARE: Care este cea mai potrivită strategie de rezolvare?\n"
+                f"Opțiuni:\n"
+                f"A) {problem['strategies'][0]}\n"
+                f"B) {problem['strategies'][1]}\n"
+                f"C) {problem['strategies'][2]}\n\n"
+                f"Justifică alegerea considerând complexitatea și eficiență."
+            )
+        
+        elif problem_key == "knight_tour":
+            return (
+                f"PROBLEMA: {problem['name']}\n"
+                f"Descriere: {problem['description']}\n\n"
+                f"INSTANȚĂ: Tablă de {instance['board_size']}x{instance['board_size']}, "
+                f"pornind din colțul stânga-sus {instance['start_position']}.\n\n"
+                f"ÎNTREBARE: Care este cea mai potrivită strategie de rezolvare?\n"
+                f"Opțiuni:\n"
+                f"A) {problem['strategies'][0]}\n"
+                f"B) {problem['strategies'][1]}\n"
+                f"C) {problem['strategies'][2]}\n\n"
+                f"Justifică alegerea considerând performanța și rata de succes."
+            )
+        
+        elif problem_key == "graph_coloring":
+            return (
+                f"PROBLEMA: {problem['name']}\n"
+                f"Descriere: {problem['description']}\n\n"
+                f"INSTANȚĂ: Graf cu {instance['num_nodes']} noduri și conexiuni {instance['density']}.\n\n"
+                f"ÎNTREBARE: Care este cea mai potrivită strategie de rezolvare?\n"
+                f"Opțiuni:\n"
+                f"A) {problem['strategies'][0]}\n"
+                f"B) {problem['strategies'][1]}\n"
+                f"C) {problem['strategies'][2]}\n\n"
+                f"Justifică alegerea considerând optimalitate și complexitate."
+            )
+        
+        elif problem_key == "hanoi":
+            return (
+                f"PROBLEMA: {problem['name']}\n"
+                f"Descriere: {problem['description']}\n\n"
+                f"INSTANȚĂ: {instance['num_discs']} discuri de diferite dimensiuni, "
+                f"{instance['num_pegs']} tije disponibile.\n\n"
+                f"ÎNTREBARE: Care este cea mai potrivită strategie de rezolvare?\n"
+                f"Opțiuni:\n"
+                f"A) {problem['strategies'][0]}\n"
+                f"B) {problem['strategies'][1]}\n"
+                f"C) {problem['strategies'][2]}\n\n"
+                f"Justifică alegerea considerând eficiență și garantii de corectitudine."
+            )
+        
+        # Default fallback
+        return (
+            f"PROBLEMA: {problem['name']}\n"
+            f"Descriere: {problem['description']}\n\n"
+            f"INSTANȚĂ: {instance}\n\n"
+            f"ÎNTREBARE: Care este cea mai potrivită strategie din list?\n"
+            f"Opțiuni:\n"
+            f"A) {problem['strategies'][0]}\n"
+            f"B) {problem['strategies'][1]}\n"
+            f"C) {problem['strategies'][2]}\n\n"
+            f"Justifică alegerea."
+        )
+
 
 # ==========================================
 # 4. EVALUATOR
@@ -518,33 +673,54 @@ def main():
     evaluator = Evaluator()
 
     print("=== AI TEACHING ASSISTANT (GAME THEORY & SEARCH) ===")
-    print("Exemple comenzi: 'genereaza minmax', 'intrebare nash', 'despre n-queens', 'exit'")
+    print("Exemple comenzi:")
+    print("  'genereaza minmax', 'intrebare nash', 'despre n-queens'")
+    print("  'selectie problema' - pentru intrebare cu alegere din lista de 4+ probleme")
+    print("  'exit' - pentru a iesi")
 
     while True:
         prompt = input("\nUser Input > ").strip()
         if prompt.lower() in ["exit", "quit"]:
             break
 
-        # 1. Identify Topic
-        topic_key, topic_data = get_topic_from_prompt(prompt)
-        print(f"--- Subiect identificat: {topic_key} ---")
+        # Check for problem selection question type
+        if any(keyword in prompt.lower() for keyword in ["selectie problema", "alegere", "problem selection"]):
+            print("--- Tip: Alegere dintre 4+ probleme cu instanță ---")
+            bundle = generator.generate_problem_selection_question()
+            
+            # Display Question
+            print(f"\n[AI Question]:\n{bundle.question_text}")
+            
+            # Get User Answer
+            user_ans = input("\n[Your Answer]: ")
+            
+            print("\n--- RĂSPUNS TRIMIS ---")
+            print(f"Răspunsul tău: {user_ans}")
+            print(f"\nProblem ID: {bundle.topic_info['problem']}")
+            print(f"Instance: {bundle.topic_info['instance']}")
+            print(f"Strategii disponibile: {bundle.topic_info['strategies']}")
+            print("\n(Nu se evaluează automat - este o întrebare deschisă pentru evaluare manuală)")
+        else:
+            # 1. Identify Topic
+            topic_key, topic_data = get_topic_from_prompt(prompt)
+            print(f"--- Subiect identificat: {topic_key} ---")
 
-        # 2. Generate Bundle (Question + Pre-computed Answer)
-        bundle = generator.create_question(topic_key, topic_data)
+            # 2. Generate Bundle (Question + Pre-computed Answer)
+            bundle = generator.create_question(topic_key, topic_data)
 
-        # 3. Display Question
-        print(f"\n[AI Question]:\n{bundle.question_text}")
+            # 3. Display Question
+            print(f"\n[AI Question]:\n{bundle.question_text}")
 
-        # 4. Get User Answer
-        user_ans = input("\n[Your Answer]: ")
+            # 4. Get User Answer
+            user_ans = input("\n[Your Answer]: ")
 
-        # 5. Evaluate
-        result = evaluator.evaluate(user_ans, bundle)
+            # 5. Evaluate
+            result = evaluator.evaluate(user_ans, bundle)
 
-        print("\n--- REZULTAT ---")
-        print(f"Scor: {result['score']}")
-        print(f"Feedback: {result['feedback']}")
-        print(f"Răspunsul corect era: {result['correct_answer']}")
+            print("\n--- REZULTAT ---")
+            print(f"Scor: {result['score']}")
+            print(f"Feedback: {result['feedback']}")
+            print(f"Răspunsul corect era: {result['correct_answer']}")
 
 
 if __name__ == "__main__":
