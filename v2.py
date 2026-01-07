@@ -1,3 +1,4 @@
+import itertools
 import random
 import math
 import re
@@ -134,39 +135,113 @@ class GameEngine:
         val = alpha_beta(root_node, -math.inf, math.inf, True)
         return val, visited_leaves
 
-    @staticmethod
-    def generate_nash_matrix(rows=2, cols=2):
-        return [[(random.randint(0, 9), random.randint(0, 9)) for _ in range(cols)] for _ in range(rows)]
+    # @staticmethod
+    # def generate_nash_matrix(rows=2, cols=2):
+    #     return [[(random.randint(0, 9), random.randint(0, 9)) for _ in range(cols)] for _ in range(rows)]
+    #
+    # @staticmethod
+    # def format_matrix(matrix):
+    #     return "[\n" + ",\n".join([str(row) for row in matrix]) + "\n]"
+    #
+    # @staticmethod
+    # def solve_nash(matrix):
+    #     rows = len(matrix)
+    #     cols = len(matrix[0])
+    #     equilibria = []
+    #
+    #     # Find Best Response for P1 (Row player matches Row index)
+    #     best_r = {c: [] for c in range(cols)}
+    #     for c in range(cols):
+    #         max_val = max(matrix[r][c][0] for r in range(rows))
+    #         for r in range(rows):
+    #             if matrix[r][c][0] == max_val: best_r[c].append(r)
+    #
+    #     # Find Best Response for P2 (Col player matches Col index)
+    #     best_c = {r: [] for r in range(rows)}
+    #     for r in range(rows):
+    #         max_val = max(matrix[r][c][1] for c in range(cols))
+    #         for c in range(cols):
+    #             if matrix[r][c][1] == max_val: best_c[r].append(c)
+    #
+    #     # Intersection
+    #     for r in range(rows):
+    #         for c in range(cols):
+    #             if r in best_r[c] and c in best_c[r]:
+    #                 equilibria.append(f"(Row {r}, Col {c}) -> Payoffs {matrix[r][c]}")
+    #
+    #     return equilibria if equilibria else ["Niciun echilibru Nash pur"]
 
     @staticmethod
-    def format_matrix(matrix):
-        return "[\n" + ",\n".join([str(row) for row in matrix]) + "\n]"
+    def generate_n_player_game(num_players=3, strategies_per_player=2):
+        """
+        Generează o structură de joc pentru N jucători.
+        Returnează:
+          - payoffs: Dict {(s1, s2, ...): (payoff1, payoff2, ...)}
+          - ranges: Lista cu numărul de strategii pt fiecare jucător [2, 2, 2]
+        """
+        # Definim câte strategii are fiecare jucător (presupunem egal pentru simplitate)
+        ranges = [range(strategies_per_player) for _ in range(num_players)]
+
+        payoffs = {}
+        # Generăm produsul cartezian al tuturor strategiilor (ex: (0,0,0), (0,0,1)...)
+        all_profiles = itertools.product(*ranges)
+
+        for profile in all_profiles:
+            # Generăm payoff-uri random pentru fiecare jucător în acest profil
+            payoff_tuple = tuple(random.randint(0, 9) for _ in range(num_players))
+            payoffs[profile] = payoff_tuple
+
+        return payoffs, strategies_per_player
 
     @staticmethod
-    def solve_nash(matrix):
-        rows = len(matrix)
-        cols = len(matrix[0])
+    def format_n_player_game(payoffs, num_players):
+        """Afișează jocul sub formă de listă (matricea e imposibil de desenat pt N>2)."""
+        output = [f"Joc cu {num_players} jucători. Payoffs (J1, J2, ...):"]
+        for profile, scores in payoffs.items():
+            strat_str = ", ".join([f"S{i}" for i in profile])
+            output.append(f"  Strategii [{strat_str}] -> Payoffs {scores}")
+        return "\n".join(output)
+
+    @staticmethod
+    def solve_n_player_nash(payoffs, num_players, strategies_per_player):
         equilibria = []
 
-        # Find Best Response for P1 (Row player matches Row index)
-        best_r = {c: [] for c in range(cols)}
-        for c in range(cols):
-            max_val = max(matrix[r][c][0] for r in range(rows))
-            for r in range(rows):
-                if matrix[r][c][0] == max_val: best_r[c].append(r)
+        # Iterăm prin TOATE profilurile posibile de strategii
+        all_profiles = payoffs.keys()
 
-        # Find Best Response for P2 (Col player matches Col index)
-        best_c = {r: [] for r in range(rows)}
-        for r in range(rows):
-            max_val = max(matrix[r][c][1] for c in range(cols))
-            for c in range(cols):
-                if matrix[r][c][1] == max_val: best_c[r].append(c)
+        for profile in all_profiles:
+            is_nash = True
+            current_payoffs = payoffs[profile]  # Ex: (3, 5, 1) pentru profilul (0, 1, 0)
 
-        # Intersection
-        for r in range(rows):
-            for c in range(cols):
-                if r in best_r[c] and c in best_c[r]:
-                    equilibria.append(f"(Row {r}, Col {c}) -> Payoffs {matrix[r][c]}")
+            # Verificăm pentru FIECARE jucător 'i' dacă poate devia unilateral
+            for player_idx in range(num_players):
+                player_current_strategy = profile[player_idx]
+                player_current_payoff = current_payoffs[player_idx]
+
+                # Căutăm o strategie alternativă pentru acest jucător
+                can_improve = False
+                for alt_strat in range(strategies_per_player):
+                    if alt_strat == player_current_strategy:
+                        continue
+
+                    # Construim profilul ipotetic unde doar jucătorul 'i' schimbă
+                    alt_profile_list = list(profile)
+                    alt_profile_list[player_idx] = alt_strat
+                    alt_profile = tuple(alt_profile_list)
+
+                    # Vedem cât ar câștiga jucătorul 'i' în noul scenariu
+                    alt_payoff = payoffs[alt_profile][player_idx]
+
+                    if alt_payoff > player_current_payoff:
+                        can_improve = True
+                        break  # Am găsit o mișcare mai bună, deci nu e Nash
+
+                if can_improve:
+                    is_nash = False
+                    break  # Dacă un singur jucător pleacă, profilul nu e Nash
+
+            if is_nash:
+                equilibria.append(f"Profil {profile} -> Payoffs {current_payoffs}")
 
         return equilibria if equilibria else ["Niciun echilibru Nash pur"]
 
@@ -231,18 +306,50 @@ class ContentGenerator:
 
         return QuestionBundle(question, answer, info)
 
-    def _create_nash_bundle(self, info):
-        # Generate Data
-        matrix = self.engine.generate_nash_matrix()
+    # def _create_nash_bundle(self, info):
+    #     # Generate Data
+    #     matrix = self.engine.generate_nash_matrix()
+    #
+    #     # Solve Data
+    #     solutions = self.engine.solve_nash(matrix)
+    #     solutions_str = "; ".join(solutions)
+    #
+    #     # Format Text
+    #     mat_str = self.engine.format_matrix(matrix)
+    #     question = (
+    #         f"Pentru jocul în formă normală de mai jos (tuplele sunt (J1, J2)):\n{mat_str}\n"
+    #         f"Identifică toate echilibrele Nash pure."
+    #     )
+    #
+    #     answer = f"Echilibrele Nash sunt: {solutions_str}."
+    #
+    #     return QuestionBundle(question, answer, info)
 
-        # Solve Data
-        solutions = self.engine.solve_nash(matrix)
+    def _create_nash_bundle(self, info):
+        # 1. Configurare
+        num_players = random.randint(2, 3)  # Acum suportă 2 sau 3 jucători random
+        strategies = 2
+
+        # 2. Generare Date (folosind noua logică)
+        # Nota: Va trebui sa instanțiezi clasa nouă sau să muți metodele în GameEngine
+        game_data, strat_count = GameEngine.generate_n_player_game(num_players, strategies)
+
+        # 3. Rezolvare
+        solutions = GameEngine.solve_n_player_nash(game_data, num_players, strat_count)
         solutions_str = "; ".join(solutions)
 
-        # Format Text
-        mat_str = self.engine.format_matrix(matrix)
+        # 4. Formatare Text
+        # Pentru 3 jucători, nu mai afișăm matricea, ci lista de profile, altfel e ilizibil
+        if num_players == 2:
+            # Putem converti înapoi la matrice pentru afișare frumoasă dacă vrei,
+            # sau folosim formatarea simplă listată
+            viz_str = GameEngine.format_n_player_game(game_data, num_players)
+        else:
+            viz_str = GameEngine.format_n_player_game(game_data, num_players)
+
         question = (
-            f"Pentru jocul în formă normală de mai jos (tuplele sunt (J1, J2)):\n{mat_str}\n"
+            f"Se dă un joc cu {num_players} jucători, fiecare având {strategies} strategii (0 sau 1).\n"
+            f"Lista completă a câștigurilor (Payoffs) este:\n\n{viz_str}\n\n"
             f"Identifică toate echilibrele Nash pure."
         )
 
@@ -574,7 +681,10 @@ class Evaluator:
         score = int(sim_score * 100)
         feedback = f"Similaritate semantică: {score}/100."
 
-        # Extra logic for numeric answers (MinMax)
+        user_norm = Evaluator.normalize(user_answer)
+        sys_norm = Evaluator.normalize(system_bundle.correct_answer_text)
+
+        # Extra logic for numeric answers (MinMax) -- FOR MINIMAX
         if "vizitate" in system_bundle.correct_answer_text:
             nums_sys = re.findall(r'\d+', system_bundle.correct_answer_text)
             nums_user = re.findall(r'\d+', user_answer)
@@ -587,47 +697,107 @@ class Evaluator:
                 feedback = "Nu ai introdus nicio valoare numerică."
 
         # Extra logic for Nash equilibrium answers (Partial credit)
-        if "echilibr" in Evaluator.normalize(system_bundle.correct_answer_text):
-            # Extract equilibrium coordinates from correct answer
-            # Pattern: (Row X, Col Y) -> Payoffs (a, b)
-            correct_eq_pattern = r'\(Row (\d+), Col (\d+)\)'
-            correct_eqs = re.findall(correct_eq_pattern, system_bundle.correct_answer_text)
-            
-            # Extract coordinates from user answer (flexible patterns)
-            # Looks for: "Row X Col Y", "(X, Y)", "X Y", etc.
-            user_pattern = r'(?:Row\s*(\d+)\s*Col\s*(\d+)|[\(\[]?\s*(\d+)\s*[,\s]\s*(\d+)\s*[\)\]]?)'
-            user_pairs = re.findall(user_pattern, user_answer)
-            
-            # Normalize user pairs
-            user_coords = set()
-            for match in user_pairs:
-                row = match[0] or match[2]
-                col = match[1] or match[3]
-                if row and col:
-                    user_coords.add((int(row), int(col)))
-            
-            # Convert correct coords to set
-            correct_coords = set((int(r), int(c)) for r, c in correct_eqs)
-            
-            if user_coords and correct_coords:
-                matched = user_coords & correct_coords
-                if len(matched) == len(correct_coords):
-                    # User identified all equilibria correctly
-                    score = 100
-                    feedback = "Corect! Ai identificat corect toate echilibrele Nash."
-                elif matched:
-                    # User identified some equilibria correctly (partial credit)
-                    score = int(50 + (len(matched) / len(correct_coords)) * 50)
-                    feedback = f"Parțial corect. Ai identificat {len(matched)}/{len(correct_coords)} echilibre."
-                else:
-                    # User provided coordinates but none match
-                    score = max(0, int(sim_score * 50))
-                    feedback = f"Echilibrele propuse nu sunt corecte. Similaritate: {int(sim_score * 100)}%."
-            elif "echilibr" in Evaluator.normalize(user_answer) and not user_coords:
-                # User mentions equilibrium but no coords: award based on similarity
-                score = max(0, int(sim_score * 70))
-                feedback = f"Ai recunoscut termenul 'echilibru' dar nu ai oferit coordonatele exacte."
+        # if "echilibr" in Evaluator.normalize(system_bundle.correct_answer_text):
+        #     # Extract equilibrium coordinates from correct answer
+        #     # Pattern: (Row X, Col Y) -> Payoffs (a, b)
+        #     correct_eq_pattern = r'\(Row (\d+), Col (\d+)\)'
+        #     correct_eqs = re.findall(correct_eq_pattern, system_bundle.correct_answer_text)
+        #
+        #     # Extract coordinates from user answer (flexible patterns)
+        #     # Looks for: "Row X Col Y", "(X, Y)", "X Y", etc.
+        #     user_pattern = r'(?:Row\s*(\d+)\s*Col\s*(\d+)|[\(\[]?\s*(\d+)\s*[,\s]\s*(\d+)\s*[\)\]]?)'
+        #     user_pairs = re.findall(user_pattern, user_answer)
+        #
+        #     # Normalize user pairs
+        #     user_coords = set()
+        #     for match in user_pairs:
+        #         row = match[0] or match[2]
+        #         col = match[1] or match[3]
+        #         if row and col:
+        #             user_coords.add((int(row), int(col)))
+        #
+        #     # Convert correct coords to set
+        #     correct_coords = set((int(r), int(c)) for r, c in correct_eqs)
+        #
+        #     if user_coords and correct_coords:
+        #         matched = user_coords & correct_coords
+        #         if len(matched) == len(correct_coords):
+        #             # User identified all equilibria correctly
+        #             score = 100
+        #             feedback = "Corect! Ai identificat corect toate echilibrele Nash."
+        #         elif matched:
+        #             # User identified some equilibria correctly (partial credit)
+        #             score = int(50 + (len(matched) / len(correct_coords)) * 50)
+        #             feedback = f"Parțial corect. Ai identificat {len(matched)}/{len(correct_coords)} echilibre."
+        #         else:
+        #             # User provided coordinates but none match
+        #             score = max(0, int(sim_score * 50))
+        #             feedback = f"Echilibrele propuse nu sunt corecte. Similaritate: {int(sim_score * 100)}%."
+        #     elif "echilibr" in Evaluator.normalize(user_answer) and not user_coords:
+        #         # User mentions equilibrium but no coords: award based on similarity
+        #         score = max(0, int(sim_score * 70))
+        #         feedback = f"Ai recunoscut termenul 'echilibru' dar nu ai oferit coordonatele exacte."
 
+        def parse_tuple(text_chunk):
+            # Caută toate secvențele de cifre, ignorând paranteze, litere sau virgule
+            nums = [int(n) for n in re.findall(r'\d+', text_chunk)]
+            return tuple(nums) if nums else None
+
+        if "echilibr" in sys_norm or "strategii" in sys_norm:
+
+            sys_pattern = r'(?:Profil|Strategii|Row|Col)\s*[:]?\s*([\[\(].*?[\]\)])'
+            raw_sys_matches = re.findall(sys_pattern, system_bundle.correct_answer_text)
+
+            if not raw_sys_matches:
+                clean_text = re.sub(r'Payoffs\s*[\[\(].*?[\]\)]', '', system_bundle.correct_answer_text,
+                                    flags=re.IGNORECASE)
+                raw_sys_matches = re.findall(r'[\[\(].*?[\]\)]', clean_text)
+
+            correct_coords = set()
+            for m in raw_sys_matches:
+                t = parse_tuple(m)
+                if t: correct_coords.add(t)
+
+            raw_user_matches = re.findall(r'[\[\(].*?[\]\)]', user_answer)
+            user_coords = set()
+
+            if not raw_user_matches and re.search(r'\d', user_answer):
+                t = parse_tuple(user_answer)
+                if t: user_coords.add(t)
+            else:
+                for m in raw_user_matches:
+                    t = parse_tuple(m)
+                    if t: user_coords.add(t)
+
+            if not correct_coords:
+                negations = ["nu", "niciun", "none", "nimic", "zero", "inexistent"]
+                has_negation = any(neg in user_norm for neg in negations)
+
+                if has_negation:
+                    score = 100
+                    feedback = "Corect! Ai identificat că nu există niciun echilibru Nash pur."
+                elif user_coords:
+                    score = 0
+                    feedback = "Greșit. Ai găsit echilibre, dar corect este că nu există."
+                else:
+                    feedback = f"Nu există echilibre. Similaritate răspuns: {score}%."
+
+            else:
+                if user_coords:
+                    matched = user_coords & correct_coords
+
+                    if len(matched) == len(correct_coords) and len(user_coords) == len(correct_coords):
+                        score = 100
+                        feedback = "Excelent! Ai identificat toate echilibrele corect."
+                    elif matched:
+                        ratio = len(matched) / len(correct_coords)
+                        score = int(30 + (ratio * 70))
+                        feedback = f"Parțial corect. Ai găsit {len(matched)} din {len(correct_coords)} echilibre."
+                    else:
+                        score = int(sim_score * 50)
+                        feedback = f"Coordonatele propuse {list(user_coords)} nu sunt corecte. Corect era: {list(correct_coords)}."
+                else:
+                    feedback = f"Nu ai oferit coordonatele specifice (ex: (1, 1)). Similaritate text: {score}%."
         return {
             "score": score,
             "feedback": feedback,
