@@ -588,7 +588,7 @@ class ContentGenerator:
                 f"C) {problem['strategies'][2]}\n\n"
                 f"Justifică alegerea considerând complexitatea și eficiență."
             )
-        
+
         elif problem_key == "knight_tour":
             return (
                 f"PROBLEMA: {problem['name']}\n"
@@ -602,7 +602,7 @@ class ContentGenerator:
                 f"C) {problem['strategies'][2]}\n\n"
                 f"Justifică alegerea considerând performanța și rata de succes."
             )
-        
+
         elif problem_key == "graph_coloring":
             return (
                 f"PROBLEMA: {problem['name']}\n"
@@ -615,7 +615,7 @@ class ContentGenerator:
                 f"C) {problem['strategies'][2]}\n\n"
                 f"Justifică alegerea considerând optimalitate și complexitate."
             )
-        
+
         elif problem_key == "hanoi":
             return (
                 f"PROBLEMA: {problem['name']}\n"
@@ -629,7 +629,7 @@ class ContentGenerator:
                 f"C) {problem['strategies'][2]}\n\n"
                 f"Justifică alegerea considerând eficiență și garantii de corectitudine."
             )
-        
+
         # Default fallback
         return (
             f"PROBLEMA: {problem['name']}\n"
@@ -673,9 +673,12 @@ class Evaluator:
         if not denominator: return 0.0
         return numerator / denominator
 
-    def evaluate(self, user_answer, system_bundle):
+    def evaluate(self, user_answer: str, system_bundle: dict) -> dict:
+        # Sigur că avem dict, nu obiect
+        correct_answer_text = system_bundle.get("correct_answer_text", "")
+
         # 1. Similarity Check
-        sim_score = self.cosine_similarity(user_answer, system_bundle.correct_answer_text)
+        sim_score = self.cosine_similarity(user_answer, correct_answer_text)
 
         # 2. Keyword/Number Extraction Check (Hard check for Math problems)
         score = int(sim_score * 100)
@@ -695,48 +698,6 @@ class Evaluator:
             elif not nums_user:
                 score = 0
                 feedback = "Nu ai introdus nicio valoare numerică."
-
-        # Extra logic for Nash equilibrium answers (Partial credit)
-        # if "echilibr" in Evaluator.normalize(system_bundle.correct_answer_text):
-        #     # Extract equilibrium coordinates from correct answer
-        #     # Pattern: (Row X, Col Y) -> Payoffs (a, b)
-        #     correct_eq_pattern = r'\(Row (\d+), Col (\d+)\)'
-        #     correct_eqs = re.findall(correct_eq_pattern, system_bundle.correct_answer_text)
-        #
-        #     # Extract coordinates from user answer (flexible patterns)
-        #     # Looks for: "Row X Col Y", "(X, Y)", "X Y", etc.
-        #     user_pattern = r'(?:Row\s*(\d+)\s*Col\s*(\d+)|[\(\[]?\s*(\d+)\s*[,\s]\s*(\d+)\s*[\)\]]?)'
-        #     user_pairs = re.findall(user_pattern, user_answer)
-        #
-        #     # Normalize user pairs
-        #     user_coords = set()
-        #     for match in user_pairs:
-        #         row = match[0] or match[2]
-        #         col = match[1] or match[3]
-        #         if row and col:
-        #             user_coords.add((int(row), int(col)))
-        #
-        #     # Convert correct coords to set
-        #     correct_coords = set((int(r), int(c)) for r, c in correct_eqs)
-        #
-        #     if user_coords and correct_coords:
-        #         matched = user_coords & correct_coords
-        #         if len(matched) == len(correct_coords):
-        #             # User identified all equilibria correctly
-        #             score = 100
-        #             feedback = "Corect! Ai identificat corect toate echilibrele Nash."
-        #         elif matched:
-        #             # User identified some equilibria correctly (partial credit)
-        #             score = int(50 + (len(matched) / len(correct_coords)) * 50)
-        #             feedback = f"Parțial corect. Ai identificat {len(matched)}/{len(correct_coords)} echilibre."
-        #         else:
-        #             # User provided coordinates but none match
-        #             score = max(0, int(sim_score * 50))
-        #             feedback = f"Echilibrele propuse nu sunt corecte. Similaritate: {int(sim_score * 100)}%."
-        #     elif "echilibr" in Evaluator.normalize(user_answer) and not user_coords:
-        #         # User mentions equilibrium but no coords: award based on similarity
-        #         score = max(0, int(sim_score * 70))
-        #         feedback = f"Ai recunoscut termenul 'echilibru' dar nu ai oferit coordonatele exacte."
 
         def parse_tuple(text_chunk):
             # Caută toate secvențele de cifre, ignorând paranteze, litere sau virgule
@@ -798,10 +759,11 @@ class Evaluator:
                         feedback = f"Coordonatele propuse {list(user_coords)} nu sunt corecte. Corect era: {list(correct_coords)}."
                 else:
                     feedback = f"Nu ai oferit coordonatele specifice (ex: (1, 1)). Similaritate text: {score}%."
+
         return {
             "score": score,
             "feedback": feedback,
-            "correct_answer": system_bundle.correct_answer_text
+            "correct_answer": correct_answer_text
         }
 
 
@@ -838,38 +800,61 @@ def get_topic_from_prompt(prompt):
     return "minmax_alphabeta", KNOWLEDGE_BASE["C3: Game Theory"]["minmax_alphabeta"]
 
 
-def main():
-    generator = ContentGenerator()
-    evaluator = Evaluator()
 
-    print("=== AI TEACHING ASSISTANT (GAME THEORY & SEARCH) ===")
-    print("Exemple comenzi:")
-    print("  'genereaza minmax', 'intrebare nash', 'despre n-queens'")
-    print("  'selectie problema' - pentru intrebare cu alegere din lista de 4+ probleme")
-    print("  'exit' - pentru a iesi")
+from flask_cors import CORS
+from flask import Flask, jsonify, request
 
-    while True:
-        prompt = input("\nUser Input > ").strip()
-        if prompt.lower() in ["exit", "quit"]:
-            break
+app = Flask(__name__)
+CORS(app)
 
-        # Check for problem selection question type
+generator = ContentGenerator()
+evaluator = Evaluator()
+
+@app.route("/api/message",methods=["POST"])
+def question():
+
+    prompt = request.get_json().get("message","")
+
+    # if not prompt or "owner" not in prompt or "value" not in prompt:
+    #     return jsonify({"error": "Invalid payload"}), 400
+
+    # adaugă id simplu (poți folosi uuid)
+    # import uuid
+    # new_message = {
+    #     "id": str(uuid.uuid4()),
+    #     "owner": prompt["owner"],
+    #     "value": prompt["value"]
+    # }
+    # messages.append(new_message)
+
+    import re
+
+    # caută 'nr de intrebari' urmat de spațiu și un număr
+    match = re.search(r"(\d+)\s+intrebari", prompt, re.IGNORECASE)
+
+    nr_intrebari = 1
+    if match:
+        nr_intrebari = int(match.group(1))
+
+    else:
+        nr_intrebari = 1
+
+    questions = []
+
+    for i in range(nr_intrebari):
+
         if any(keyword in prompt.lower() for keyword in ["selectie problema", "alegere", "problem selection"]):
             print("--- Tip: Alegere dintre 4+ probleme cu instanță ---")
             bundle = generator.generate_problem_selection_question()
             
             # Display Question
             print(f"\n[AI Question]:\n{bundle.question_text}")
-            
-            # Get User Answer
-            user_ans = input("\n[Your Answer]: ")
-            
-            print("\n--- RĂSPUNS TRIMIS ---")
-            print(f"Răspunsul tău: {user_ans}")
-            print(f"\nProblem ID: {bundle.topic_info['problem']}")
-            print(f"Instance: {bundle.topic_info['instance']}")
-            print(f"Strategii disponibile: {bundle.topic_info['strategies']}")
-            print("\n(Nu se evaluează automat - este o întrebare deschisă pentru evaluare manuală)")
+
+            questions.append({
+            "question": bundle.question_text,
+            "answer": bundle.correct_answer_text,
+            "topic": bundle.topic_info,
+        })
         else:
             # 1. Identify Topic
             topic_key, topic_data = get_topic_from_prompt(prompt)
@@ -878,20 +863,24 @@ def main():
             # 2. Generate Bundle (Question + Pre-computed Answer)
             bundle = generator.create_question(topic_key, topic_data)
 
-            # 3. Display Question
-            print(f"\n[AI Question]:\n{bundle.question_text}")
+            questions.append({
+            "question": bundle.question_text,
+            "answer": bundle.correct_answer_text,
+            "topic": bundle.topic_info,
+        })
 
-            # 4. Get User Answer
-            user_ans = input("\n[Your Answer]: ")
+    return jsonify({"questions": questions}), 200
 
-            # 5. Evaluate
-            result = evaluator.evaluate(user_ans, bundle)
 
-            print("\n--- REZULTAT ---")
-            print(f"Scor: {result['score']}")
-            print(f"Feedback: {result['feedback']}")
-            print(f"Răspunsul corect era: {result['correct_answer']}")
+@app.route("/api/evaluate",methods=["POST"])
+def score():
 
+    data = request.get_json()
+
+    print(data.get("bundle",""))
+
+    resultat = evaluator.evaluate(data.get("response",""),data.get("bundle",""))
+    return jsonify(resultat)
 
 if __name__ == "__main__":
-    main()
+    app.run(port=3000, debug=True)
