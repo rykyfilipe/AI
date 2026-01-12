@@ -769,7 +769,7 @@ class Evaluator:
         return {
             "score": score,
             "feedback": feedback,
-            "correct_answer": correct_answer_text
+            "correct_answer": correct_answer_text,
             "correct_answer": correct_answer_text
         }
 # ==========================================
