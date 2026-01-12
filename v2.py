@@ -4,6 +4,8 @@ import math
 import re
 from typing import List, Dict, Any, Tuple
 
+
+
 # ==========================================
 # 1. KNOWLEDGE BASE (Romanian Content)
 # ==========================================
@@ -677,7 +679,12 @@ class Evaluator:
         # Sigur că avem dict, nu obiect
         correct_answer_text = system_bundle.get("correct_answer_text", "")
 
+    def evaluate(self, user_answer: str, system_bundle: dict) -> dict:
+        # Sigur că avem dict, nu obiect
+        correct_answer_text = system_bundle.get("correct_answer_text", "")
+
         # 1. Similarity Check
+        sim_score = self.cosine_similarity(user_answer, correct_answer_text)
         sim_score = self.cosine_similarity(user_answer, correct_answer_text)
 
         # 2. Keyword/Number Extraction Check (Hard check for Math problems)
@@ -691,7 +698,6 @@ class Evaluator:
         if "vizitate" in system_bundle.correct_answer_text:
             nums_sys = re.findall(r'\d+', system_bundle.correct_answer_text)
             nums_user = re.findall(r'\d+', user_answer)
-            # Check if the numbers in correct answer appear in user answer
             if set(nums_sys).issubset(set(nums_user)):
                 score = 100
                 feedback = "Corect! Ai identificat valorile numerice corecte."
@@ -764,9 +770,8 @@ class Evaluator:
             "score": score,
             "feedback": feedback,
             "correct_answer": correct_answer_text
+            "correct_answer": correct_answer_text
         }
-
-
 # ==========================================
 # 5. MAIN PIPELINE
 # ==========================================
@@ -883,4 +888,5 @@ def score():
     return jsonify(resultat)
 
 if __name__ == "__main__":
+    app.run(port=3000, debug=True)
     app.run(port=3000, debug=True)
