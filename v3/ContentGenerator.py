@@ -2,6 +2,7 @@ import random
 from v3.GameEngine import GameEngine
 from v3.QuestionBundle import QuestionBundle
 
+from v3.CSP import solve_from_partial_assignment
 
 class ContentGenerator:
     def __init__(self):
@@ -136,25 +137,81 @@ class ContentGenerator:
             return self._create_theory_bundle(key, info)
 
     def _create_nqueens_strategy(self, key, info):
-        """Generate N-Queens strategy question with a specific board state."""
+        """Generate N-Queens strategy question and solve it using CSP logic."""
         n = random.randint(4, 6)
+        
+        # 1. Pregătire date pentru CSP (Variabile pe rânduri)
+        variables = [f"R{i}" for i in range(n)]
+        domains = {v: list(range(n)) for v in variables}
+        
+        constraints = {}
+        for i in range(n):
+            for j in range(i + 1, n):
+                # r1, r2 sunt indecșii rândurilor, c1, c2 sunt coloanele (valorile)
+                def make_check(r1, r2):
+                    return lambda c1, c2: c1 != c2 and abs(c1 - c2) != abs(r1 - r2)
+                constraints[(f"R{i}", f"R{j}")] = make_check(i, j)
 
-        # Example: board state shown as positions of conflicting queens
+        # 2. Rezolvare folosind motorul CSP (metoda FC - Forward Checking)
+        solution = solve_from_partial_assignment(variables, domains, constraints, {}, method="FC")
+
         question = (
-            f"Pentru problema N-Queens cu N={n}:\n"
-            f"Trei regine sunt deja plasate și crează conflicte. Cum rezolvi mai eficient?\n"
+            f"PROBLEMA: N-Queens cu N={n}\n"
+            f"Descriere: Plasarea a {n} regine pe tablă fără a se ataca.\n\n"
+            f"ÎNTREBARE: Care este cea mai potrivită strategie de rezolvare?\n"
             f"A) Backtracking cu Forward Checking\n"
             f"B) Local Search (min-conflicts)\n"
-            f"C) Genetic Algorithms\n"
-            f"Justifică alegerea."
+            f"C) Genetic Algorithms\n\n"
+            f"Justifică alegerea și oferă o soluție validă sub formă de coloane."
         )
 
         answer = (
             f"Răspuns: A) Backtracking cu Forward Checking. Motivare: "
-            f"Pentru N={n} cu conflicte initiale, Forward Checking elimina rapid valori imposibile "
-            f"(MRV heuristic) și reduce spațiul de căutare exponențial. "
-            f"Local Search ar putea rămâne într-un optim local, iar GA-urile sunt excesive pentru probleme mici. "
-            f"Backtracking garantează soluție."
+            f"Pentru N={n}, FC elimină rapid ramurile imposibile (MRV heuristic) și reduce spațiul de căutare. "
+            f"Soluție validă: {solution}."
+        )
+
+        return QuestionBundle(question, answer, info)
+
+    def _create_graph_coloring_strategy(self, key, info):
+        """Generate graph coloring strategy question and solve it using CSP logic."""
+        num_nodes = random.randint(4, 5)
+        nodes = [f"N{i}" for i in range(num_nodes)]
+        colors = ["Rosu", "Verde", "Albastru"]
+        
+        # Generăm muchii aleatorii pentru instanță
+        edges = []
+        for i in range(len(nodes)):
+            for j in range(i + 1, len(nodes)):
+                if random.random() > 0.4:
+                    edges.append((nodes[i], nodes[j]))
+
+        # 1. Pregătire date pentru CSP
+        variables = nodes
+        domains = {node: list(colors) for node in nodes}
+        constraints = {}
+        for edge in edges:
+            constraints[edge] = lambda c1, c2: c1 != c2
+
+        # 2. Rezolvare folosind motorul CSP (metoda AC3)
+        solution = solve_from_partial_assignment(variables, domains, constraints, {}, method="AC3")
+
+        question = (
+            f"PROBLEMA: Graph Coloring\n"
+            f"Noduri: {nodes}\n"
+            f"Muchii: {edges}\n"
+            f"Culori: {colors}\n\n"
+            f"ÎNTREBARE: Ce strategie alegi pentru a garanta consistența înainte de căutare?\n"
+            f"A) CSP cu AC-3 (Arc Consistency)\n"
+            f"B) Greedy Coloring\n"
+            f"C) Backtracking simplu\n\n"
+            f"Justifică alegerea."
+        )
+
+        answer = (
+            f"Răspuns: A) CSP cu AC-3. Motivare: AC-3 propagă constrângerile prin toate arcele grafului, "
+            f"eliminând culorile care nu pot face parte dintr-o soluție validă. "
+            f"Soluție detectată: {solution if solution else 'Nicio solutie cu 3 culori'}"
         )
 
         return QuestionBundle(question, answer, info)
@@ -179,31 +236,6 @@ class ContentGenerator:
             f"Warnsdorff prioritizează mutări către pătrate cu mai puține opțiuni viitoare (MRV heuristic), "
             f"reducând drastic backtracking. Această strategie găsește soluția în timp liniar pentru tablele obișnuite. "
             f"Forward Checking ajută mai puțin aici decât Warnsdorff pentru această problemă specifică."
-        )
-
-        return QuestionBundle(question, answer, info)
-
-    def _create_graph_coloring_strategy(self, key, info):
-        """Generate graph coloring strategy question with a specific graph."""
-        num_nodes = random.randint(5, 8)
-        density = random.choice(["rară", "medie", "densă"])
-
-        question = (
-            f"Un graf cu {num_nodes} noduri și conexiuni {density} trebuie colorat cu numarul minim de culori. "
-            f"Alege strategia optimă:\n"
-            f"A) CSP cu AC-3 (Arc Consistency)\n"
-            f"B) Greedy coloring (First-Fit)\n"
-            f"C) Backtracking fără propagare\n"
-            f"Justifică alegerea considerând complexitatea și garantiile de optimalitate."
-        )
-
-        answer = (
-            f"Răspuns: A) CSP cu AC-3. Motivare: "
-            f"AC-3 propagă constrângeri înainte de backtracking, eliminând combinații imposibile. "
-            f"Pentru grafuri cu {num_nodes} noduri și densitate {density}, "
-            f"reduce spaţiul de căutare semnificativ. Greedy poate da soluții suboptimale (nu garantează min). "
-            f"Backtracking pur fără AC-3 explorează mai multe noduri. "
-            f"AC-3 este standard pentru CSP și optimizează atât viteza cât și calitatea soluției."
         )
 
         return QuestionBundle(question, answer, info)

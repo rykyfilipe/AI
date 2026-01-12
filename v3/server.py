@@ -147,7 +147,6 @@ def question():
 def score():
     data = request.get_json()
 
-    print(data.get("bundle", ""))
 
     resultat = evaluator.evaluate(data.get("response", ""), data.get("bundle", ""))
     return jsonify(resultat)
