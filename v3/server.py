@@ -30,6 +30,12 @@ KNOWLEDGE_BASE = {
             "strategies": ["recursion", "dynamic programming", "backtracking"],
             "optimizations": ["memoization"],
             "type": "search_strategy"
+        },
+        "csp_continuation": {
+            "description": "Continuarea rezolvării unui CSP pornind de la asignare parțială.",
+            "strategies": ["backtracking", "forward checking", "MRV", "AC-3"],
+            "optimizations": ["MRV", "Forward Checking", "AC-3"],
+            "type": "csp_continuation"
         }
     },
     "C3: Game Theory": {
@@ -53,6 +59,7 @@ SYNONYMS = {
     "knight_tour": ["knight tour", "calarel", "calaret"],
     "graph_coloring": ["graph coloring", "colorare graf", "coloring", "colorare"],
     "hanoi": ["hanoi", "turnuri"],
+    "csp_continuation": ["asignare", "csp continuare", "backtracking fc", "mrv", "ac-3", "asignare variabile"],
     "nash_equilibrium": ["nash", "echilibru"],
     "minmax_alphabeta": ["minmax", "alpha-beta", "arbore", "tree"],
 }
@@ -113,6 +120,28 @@ def question():
     questions = []
 
     for i in range(nr_intrebari):
+        
+        if any(k in prompt.lower() for k in ["asignare", "csp continuare", "backtracking fc", "mrv", "ac-3", "ac3" ]):
+            print("--- Tip: CSP continuation ---")
+
+            # forțăm topicul
+            topic_key = "csp_continuation"
+            topic_data = None
+
+            # îl luăm din KB
+            for course in KNOWLEDGE_BASE.values():
+                if topic_key in course:
+                    topic_data = course[topic_key]
+
+            bundle = generator.create_question(topic_key, topic_data)
+
+            questions.append({
+                "question": bundle.question_text,
+                "answer": bundle.correct_answer_text,
+                "topic": bundle.topic_info,
+            })
+            continue
+        
 
         if any(keyword in prompt.lower() for keyword in ["selectie problema", "alegere", "problem selection"]):
             print("--- Tip: Alegere dintre 4+ probleme cu instanță ---")
