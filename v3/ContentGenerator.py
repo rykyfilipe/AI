@@ -23,9 +23,107 @@ class ContentGenerator:
         elif topic_data.get("type") in ["csp", "search_strategy"]:
             return self._create_strategy_bundle(topic_key, topic_data)
 
-        # 4. Handle Theory Questions (Default)
+        # 4. Handle CSP Continuation Questions
+        elif topic_data.get("type") == "csp_continuation":
+            return self._create_csp_continuation_bundle(topic_key, topic_data)
+
+        # 5. Handle Theory Questions (Default)
         else:
             return self._create_theory_bundle(topic_key, topic_data)
+
+    def _create_csp_continuation_bundle(self, key, info):
+        """
+        Generează:
+        - variabile
+        - domenii
+        - constrângeri
+        - asignare parțială
+        - metodă: FC / MRV / AC-3
+        """
+
+        # -------------------------
+        # 1. INSTANȚĂ CSP
+        # -------------------------
+        variables = ["A", "B", "C", "D"]
+
+        domains = {
+            "A": [1, 2, 3],
+            "B": [1, 2, 3],
+            "C": [1, 2, 3],
+            "D": [1, 2, 3]
+        }
+
+        # Constrângeri: diferite
+        constraints = {
+            ("A", "B"): lambda a, b: a != b,
+            ("B", "C"): lambda b, c: b != c,
+            ("C", "D"): lambda c, d: c != d,
+            ("A", "D"): lambda a, d: a != d,
+        }
+
+        # Asignare parțială
+        partial_assignment = {
+            "A": random.choice([1, 2, 3])
+        }
+
+        # Metodă aleasă
+        method = random.choice(["FC", "MRV", "AC3"])
+
+        # -------------------------
+        # 2. REZOLVARE
+        # -------------------------
+        try:
+            from CSP import solve_from_partial_assignment
+            solution = solve_from_partial_assignment(
+                variables,
+                domains,
+                constraints,
+                partial_assignment,
+                method=method
+            )
+        except Exception as e:
+            solution = None
+
+        # -------------------------
+        # 3. FORMATARE ÎNTREBARE
+        # -------------------------
+        question = (
+            "Se dau următoarele elemente ale unui CSP:\n\n"
+            f"Variabile: {variables}\n"
+            f"Domenii: {domains}\n"
+            f"Constrângeri: A≠B, B≠C, C≠D, A≠D\n"
+            f"Asignantă parțială: {partial_assignment}\n\n"
+            f"Cerință:\n"
+            f"Care va fi asignarea variabilelor rămase folosind "
+            f"Backtracking cu optimizarea {method}?"
+        )
+
+        # -------------------------
+        # 4. FORMATARE RĂSPUNS
+        # -------------------------
+        if solution:
+            answer = (
+                f"Folosind Backtracking cu {method}, "
+                f"se obține asignarea completă:\n{solution}"
+            )
+        else:
+            answer = (
+                f"Folosind Backtracking cu {method}, "
+                f"instanța nu admite soluție."
+            )
+
+        return QuestionBundle(
+            question_text=question,
+            correct_answer_text=answer,
+            topic_info={
+                "type": "csp_continuation",
+                "variables": variables,
+                "domains": domains,
+                "constraints": "A≠B, B≠C, C≠D, A≠D",
+                "partial_assignment": partial_assignment,
+                "method": method
+            }
+        )
 
     def _create_minimax_bundle(self, info):
         # Generate Data First
